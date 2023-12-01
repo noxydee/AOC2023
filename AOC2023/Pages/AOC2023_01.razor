@@ -1,0 +1,156 @@
+﻿@page "/aoc2023_01"
+@inject HttpClient Http
+
+<h3>AOC2023_01</h3>
+
+<div class="aoc_grid">
+    <div class="aoc__content">
+        @for(int i=0;i<InputData.Count;i++)
+        {
+            <span>[@i] @InputData[i]</span><br />
+        }
+    </div>
+    <div class="aoc__content">
+        Part one: @ResultPartOne<br />
+        Part two: @ResultPartTwo
+    </div>
+    <div class="aoc__content">
+        @foreach(KeyValuePair<string, int> result in InputResults)
+        {
+            <p>@result.Key / @result.Value</p>
+        }
+    </div>
+</div>
+
+@code {
+    private List<string> InputData { get; set; } = new();
+    private long ResultPartOne { get; set; }
+    private long ResultPartTwo { get; set; }
+
+    List<KeyValuePair<string, int>> InputResults = new();
+
+    private List<string> Digits = new()
+    {
+        "one",
+        "two",
+        "three",
+        "four",
+        "five",
+        "six",
+        "seven",
+        "eight",
+        "nine"
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        string input = await Http.GetStringAsync("input-data/AOC_01.txt");
+        StringReader reader = new(input);
+
+        while(true)
+        {
+            string? line = await reader.ReadLineAsync();
+
+            if(line == null)
+            {
+                break;
+            }
+
+            InputData.Add(line);
+        }
+
+        CalculateResultOne();
+        CalculateResultTwo();
+    }
+
+    public void CalculateResultOne()
+    {
+        ResultPartOne = 0;
+
+        foreach(string line in InputData)
+        {
+            int firstDigit = -1;
+            int lastDigit = -1;
+
+            foreach(char character in line)
+            {
+                if(Char.IsDigit(character))
+                {
+                    if(firstDigit < 0)
+                    {
+                        firstDigit = int.Parse(character.ToString());
+                    }
+
+                    lastDigit = int.Parse(character.ToString());
+                }
+            }
+
+            ResultPartOne += ((firstDigit * 10) + lastDigit);
+        }
+    }
+
+    public void CalculateResultTwo()
+    {
+        ResultPartTwo = 0;
+
+        foreach (string line in InputData)
+        {
+            int firstDigit = -1;
+            int lastDigit = -1;
+
+            for (int i = 0; i < line.Length; i++) 
+            {
+                int digit = GetDigit(line, i);
+                if (digit > 0)
+                {
+                    if (firstDigit < 0)
+                    {
+                        firstDigit = digit;
+                    }
+
+                    lastDigit = digit;
+                }
+            }
+
+            InputResults.Add(new(line, ((firstDigit * 10) + lastDigit)));
+            ResultPartTwo += ((firstDigit * 10) + lastDigit);
+        }
+    }
+
+    private int GetDigit(string line, int index)
+    {
+        if(char.IsDigit(line[index]))
+        {
+            return int.Parse(line[index].ToString());
+        }
+
+        foreach (string digit in Digits)
+        {
+            try
+            {
+                int correctCount = 0;
+
+                for (int i = 0; i < digit.Length; i++)
+                {
+
+                    if (line[index + i] == digit[i])
+                    {
+                        correctCount++;
+                    }
+                }
+
+                if (correctCount == digit.Length)
+                {
+                    return Digits.IndexOf(digit) + 1;
+                }
+            }
+            catch(Exception ex)
+            {
+                
+            }
+        }
+        
+
+        return -1;
+    }
+}
