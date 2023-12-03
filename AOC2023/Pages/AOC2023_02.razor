@@ -1,0 +1,120 @@
+﻿@page "/aoc2023_02"
+@using System.Text.RegularExpressions;
+@inject HttpClient Http
+
+<h3>AOC2023_02</h3>
+
+
+<div class="aoc_grid">
+    <div class="aoc__content">
+        @for (int i = 0; i < InputData.Count; i++)
+        {
+            <span>[@i] @InputData[i]</span><br />
+        }
+    </div>
+    <div class="aoc__content">
+        Part one: @ResultPartOne<br />
+        Part two: @ResultPartTwo
+    </div>
+    <div class="aoc__content">
+        @foreach (Draw draw in Draws)
+        {
+            <p>Game: [@draw.GameIndex] [@draw.Red|@draw.Green|@draw.Blue] / @draw.IsGamePossible()</p>
+        }
+    </div>
+</div>
+
+@code {
+    private List<string> InputData { get; set; } = new();
+    private List<Draw> Draws { get; set; } = new();
+    private int ResultPartOne = 0;
+    private int ResultPartTwo = 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        string input = await Http.GetStringAsync("input-data/AOC_02.txt");
+        InputData = await DataInputHelpers.GetInputLinesAsync(input);
+
+        CalculateResultOne();
+    }
+
+    public void CalculateResultOne()
+    {
+        foreach(string line in InputData)
+        {
+            int gameIndex = int.Parse(line.Split(":")[0].Remove(0, 5));
+
+            string drawsSection = line.Split(":")[1];
+
+            foreach (string draw in drawsSection.Split(";"))
+            {
+                Draws.Add(new(draw.Trim(), gameIndex));
+            }
+        }
+
+        for(int i = 1; i <= 100; i++)
+        {
+            if(Draws.Where(x=>x.GameIndex == i).All(x=>x.IsGamePossible()))
+            {
+                ResultPartOne += i;
+            }
+        }
+
+        for (int i = 1; i <= 100; i++)
+        {
+            int minRedCubes = 0;
+            int minGreenCubes = 0;
+            int minBlueCubes = 0;
+
+            foreach (Draw draw in Draws.Where(x => x.GameIndex == i))
+            {
+                minRedCubes = Math.Max(draw.Red, minRedCubes);
+                minGreenCubes = Math.Max(draw.Green, minGreenCubes);
+                minBlueCubes = Math.Max(draw.Blue, minBlueCubes);
+            }
+
+            ResultPartTwo += (minRedCubes * minGreenCubes * minBlueCubes);
+        }
+    }
+
+    private class Draw
+    {
+        public int GameIndex { get; set; }
+        public int Red { get; set; }
+        public int Green { get; set; }
+        public int Blue { get; set; }
+
+        public Draw(string line, int gameIndex)
+        {
+            GameIndex = gameIndex;
+            Red = 0;
+            Green = 0;
+            Blue = 0;
+
+            List<string> colors = line.Split(",").ToList();
+
+            foreach(string color in colors)
+            {
+                int value = int.Parse(Regex.Match(color, @"\d+").Value);
+
+                if(color.Contains("red"))
+                {
+                    Red += value;
+                }
+                else if(color.Contains("green"))
+                {
+                    Green += value;
+                }
+                else
+                {
+                    Blue += value;
+                }
+            }
+        }
+
+        public bool IsGamePossible()
+        {
+            return (Red <= 12 && Green <= 13 && Blue <= 14);
+        }
+    }
+}

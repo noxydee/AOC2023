@@ -45,19 +45,7 @@
     protected override async Task OnInitializedAsync()
     {
         string input = await Http.GetStringAsync("input-data/AOC_01.txt");
-        StringReader reader = new(input);
-
-        while(true)
-        {
-            string? line = await reader.ReadLineAsync();
-
-            if(line == null)
-            {
-                break;
-            }
-
-            InputData.Add(line);
-        }
+        InputData = await DataInputHelpers.GetInputLinesAsync(input);
 
         CalculateResultOne();
         CalculateResultTwo();

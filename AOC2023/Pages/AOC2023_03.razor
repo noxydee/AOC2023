@@ -1,0 +1,185 @@
+﻿@page "/aoc2023_03"
+@inject HttpClient Http
+
+<h3>AOC2023_03</h3>
+
+<div class="aoc_grid">
+    <div class="aoc__content" style="display:grid; grid-template-columns: repeat(140, 20px);">
+        @for(int y=0;y<140;y++)
+        {
+            for(int x=0;x<140;x++)
+            {
+                if(numbers.Any(el => el.BelongsToCordinate(x, y) && el.IsEnginePart))
+                {
+                    <span style="border:solid 1px; background-color: red;">@InputData[x,y]</span>
+                }
+                else if (numbers.Any(el => el.BelongsToCordinate(x, y)))
+                {
+                    <span style="border:solid 1px; background-color: pink;">@InputData[x,y]</span>
+                }
+                else
+                {
+                    <span style="border:solid 1px;">@InputData[x,y]</span>
+                }
+            }
+        }
+    </div>
+    <div class="aoc__content">
+        Part one: @ResultPartOne<br/>
+        Part two: @ResultPartTwo
+    </div>
+</div>
+
+@code {
+    private char[,] InputData { get; set; } = new char[140,140];
+    private List<Number> numbers = new();
+    private int ResultPartOne = 0;
+    private int ResultPartTwo = 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        string input = await Http.GetStringAsync("input-data/AOC_03.txt");
+        List<string> lines = await DataInputHelpers.GetInputLinesAsync(input);
+
+        for(int y=0;y<140;y++)
+        {
+            for(int x=0;x<140;x++)
+            {
+                InputData[x, y] = lines[y].ElementAt(x);
+            }
+        }
+
+        CalculateResultOne();
+    }
+
+    public void CalculateResultOne()
+    {
+        for (int y = 0; y < 140; y++)
+        {
+            for (int x = 0; x < 140; x++)
+            {
+                //Załapaliśmy pierwszą cyfrę więc sprawdzamy jak długa jest
+                if(char.IsDigit(InputData[x, y]))
+                {
+                    Number number = new Number(x, y, InputData);
+                    numbers.Add(number);
+                    x += number.Length-1;
+                }
+            }
+        }
+
+        foreach(Number number in numbers)
+        {
+            if(number.IsEnginePart)
+            {
+                ResultPartOne += number.PartNumber;
+            }
+
+            foreach(Number neighbourNumber in numbers.Where(x=>x != number && !x.GearchChecked))
+            {
+                if(number.GearsCoordinates.Any(gear => neighbourNumber.GearsCoordinates.Any(ng => ng.Equals(gear))))
+                {
+                    number.GearchChecked = true;
+                    neighbourNumber.GearchChecked = true;
+
+                    ResultPartTwo += (number.PartNumber * neighbourNumber.PartNumber);
+                }
+            }
+        }
+    }
+
+    private class Number
+    {
+        public int PartNumber { get; set; }
+
+        public int PosX { get; set; }
+        public int PosY { get; set; }
+        public int Length { get; set; }
+
+        public bool IsEnginePart { get; set; }
+
+        public List<KeyValuePair<int,int>> GearsCoordinates { get; set; }
+
+        public bool GearchChecked { get; set; } = false;
+
+        public Number(int x, int y, char[,] inputData)
+        {
+            PosX = x;
+            PosY = y;
+            Length = 0;
+            GearsCoordinates = new();
+
+            string number = "";
+
+            //Sprawdzamy jak długa jest liczba
+            for (int i = x; i < 140; i++)
+            {
+                if (char.IsDigit(inputData[i,y]))
+                {
+                    number += inputData[i, y];
+                    Length++;
+                }
+                else
+                {
+                    break;
+                }
+            }
+
+            PartNumber = int.Parse(number);
+            IsEnginePart = HaveSurroundingSymbol(inputData);
+        }
+
+        public bool BelongsToCordinate(int x,int y)
+        {
+            if(y != PosY)
+            {
+                return false;
+            }
+
+            if(x < PosX || x > PosX+Length-1)
+            {
+                return false;
+            }
+
+            return true;
+        }
+
+        public bool HaveSurroundingSymbol(char[,] inputData)
+        {
+            List<KeyValuePair<int, int>> coordinatesToCheck = new();
+
+            for(int i=-1;i<Length+1;i++)
+            {
+                coordinatesToCheck.Add(new(PosX + i, PosY - 1));
+                coordinatesToCheck.Add(new(PosX + i, PosY + 1));
+            }
+            coordinatesToCheck.Add(new(PosX - 1, PosY));
+            coordinatesToCheck.Add(new(PosX + Length, PosY));
+
+            bool resultFound = false;
+
+            foreach(KeyValuePair<int,int> coordinate in coordinatesToCheck)
+            {
+                try
+                {
+                    char symbol = inputData[coordinate.Key, coordinate.Value];
+                    if (!char.IsDigit(symbol) && symbol != '.')
+                    {
+                        if(symbol == '*')
+                        {
+                            GearsCoordinates.Add(coordinate);
+                        }
+
+                        resultFound = true;
+                    }
+                }
+                catch(Exception ex)
+                {
+                    
+                }
+            }
+
+            return resultFound;
+        }
+    }
+}
